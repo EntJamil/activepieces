@@ -1,44 +1,44 @@
-version: '3.0'
+version: '3.8'
+
 services:
-  activepieces:
-    image: ghcr.io/activepieces/activepieces:0.66.4
-    container_name: activepieces
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ap_user
+      POSTGRES_PASSWORD: ap_pass
+      POSTGRES_DB: ap_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
-    ## Enable the following line if you already use AP_EXECUTION_MODE with SANDBOXED or old activepieces, checking the breaking change documentation for more info.
-    ## privileged: true
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  activepieces:
+    image: activepieces/activepieces:latest
     ports:
-      - '8080:80'
+      - "8080:80"  # غيّر المنفذ هنا حسب ما تسمح به Northflank
+    environment:
+      AP_ENVIRONMENT: prod
+      AP_FRONTEND_URL: https://<اسم_مشروعك>.northflank.app
+      AP_DB_TYPE: POSTGRES
+      AP_QUEUE_MODE: REDIS
+      AP_POSTGRES_HOST: postgres
+      AP_POSTGRES_PORT: 5432
+      AP_POSTGRES_USERNAME: ap_user
+      AP_POSTGRES_PASSWORD: ap_pass
+      AP_POSTGRES_DATABASE: ap_db
+      AP_REDIS_HOST: redis
+      AP_REDIS_PORT: 6379
+      AP_ENCRYPTION_KEY: this_is_a_strong_encryption_key
+      AP_JWT_SECRET: this_is_a_strong_jwt_secret
     depends_on:
       - postgres
       - redis
-    env_file: .env
     volumes:
       - ./cache:/usr/src/app/cache
-    networks:
-      - activepieces
-  postgres:
-    image: 'postgres:14.4'
-    container_name: postgres
     restart: unless-stopped
-    env_file: .env
-    environment:
-      - 'POSTGRES_DB=${AP_POSTGRES_DATABASE}'
-      - 'POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}'
-      - 'POSTGRES_USER=${AP_POSTGRES_USERNAME}'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - activepieces
-  redis:
-    image: 'redis:7.0.7'
-    container_name: redis
-    restart: unless-stopped
-    volumes:
-      - 'redis_data:/data'
-    networks:
-      - activepieces
+
 volumes:
-  postgres_data:
-  redis_data:
-networks:
-  activepieces:
+  pgdata:
